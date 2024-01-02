@@ -1,0 +1,14 @@
+C:\Repos\WarBoats\WarBoats\WarBoats\bin\Debug\net7.0\WarBoats.exe
+C:\Repos\WarBoats\WarBoats\WarBoats\bin\Debug\net7.0\WarBoats.deps.json
+C:\Repos\WarBoats\WarBoats\WarBoats\bin\Debug\net7.0\WarBoats.runtimeconfig.json
+C:\Repos\WarBoats\WarBoats\WarBoats\bin\Debug\net7.0\WarBoats.dll
+C:\Repos\WarBoats\WarBoats\WarBoats\bin\Debug\net7.0\WarBoats.pdb
+C:\Repos\WarBoats\WarBoats\WarBoats\obj\Debug\net7.0\WarBoats.GeneratedMSBuildEditorConfig.editorconfig
+C:\Repos\WarBoats\WarBoats\WarBoats\obj\Debug\net7.0\WarBoats.AssemblyInfoInputs.cache
+C:\Repos\WarBoats\WarBoats\WarBoats\obj\Debug\net7.0\WarBoats.AssemblyInfo.cs
+C:\Repos\WarBoats\WarBoats\WarBoats\obj\Debug\net7.0\WarBoats.csproj.CoreCompileInputs.cache
+C:\Repos\WarBoats\WarBoats\WarBoats\obj\Debug\net7.0\WarBoats.dll
+C:\Repos\WarBoats\WarBoats\WarBoats\obj\Debug\net7.0\refint\WarBoats.dll
+C:\Repos\WarBoats\WarBoats\WarBoats\obj\Debug\net7.0\WarBoats.pdb
+C:\Repos\WarBoats\WarBoats\WarBoats\obj\Debug\net7.0\WarBoats.genruntimeconfig.cache
+C:\Repos\WarBoats\WarBoats\WarBoats\obj\Debug\net7.0\ref\WarBoats.dll

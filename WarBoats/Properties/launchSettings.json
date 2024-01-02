@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "WarBoats": {
+      "commandName": "Project",
+      "hotReloadEnabled": false
+    }
+  }
+}

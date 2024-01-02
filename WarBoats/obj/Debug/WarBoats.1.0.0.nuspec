@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+    <id>WarBoats</id>
+    <version>1.0.0</version>
+    <authors>WarBoats</authors>
+    <description>Package Description</description>
+    <repository type="git" />
+    <dependencies>
+      <group targetFramework="net7.0" />
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="C:\Repos\WarBoats\WarBoats\WarBoats\bin\Debug\net7.0\WarBoats.runtimeconfig.json" target="lib\net7.0\WarBoats.runtimeconfig.json" />
+    <file src="C:\Repos\WarBoats\WarBoats\WarBoats\bin\Debug\net7.0\WarBoats.dll" target="lib\net7.0\WarBoats.dll" />
+  </files>
+</package>
