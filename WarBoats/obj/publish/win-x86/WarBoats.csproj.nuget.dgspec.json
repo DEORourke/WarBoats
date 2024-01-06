@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Repos\\WarBoats\\WarBoats\\WarBoats\\WarBoats.csproj": {}
+    "C:\\Repos\\WarBoats\\WarBoats\\WarBoats.csproj": {}
   },
   "projects": {
-    "C:\\Repos\\WarBoats\\WarBoats\\WarBoats\\WarBoats.csproj": {
+    "C:\\Repos\\WarBoats\\WarBoats\\WarBoats.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Repos\\WarBoats\\WarBoats\\WarBoats\\WarBoats.csproj",
+        "projectUniqueName": "C:\\Repos\\WarBoats\\WarBoats\\WarBoats.csproj",
         "projectName": "WarBoats",
-        "projectPath": "C:\\Repos\\WarBoats\\WarBoats\\WarBoats\\WarBoats.csproj",
+        "projectPath": "C:\\Repos\\WarBoats\\WarBoats\\WarBoats.csproj",
         "packagesPath": "C:\\Users\\Eddie\\.nuget\\packages\\",
-        "outputPath": "C:\\Repos\\WarBoats\\WarBoats\\WarBoats\\obj\\publish\\win-x86\\",
+        "outputPath": "C:\\Repos\\WarBoats\\WarBoats\\obj\\publish\\win-x86\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"

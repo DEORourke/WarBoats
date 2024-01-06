@@ -7,40 +7,45 @@ using System.Threading.Tasks;
 
 namespace WarBoats
 {
+    // The Opponent class handles logic for guessing player ship locations and hunting them down when a ship is hit.
     internal class Opponent
     {
-        private int lastGuess;
-        public int firstHit;
-        private int gridWidth;
-        private int attackDirection;
-        private bool lastGuessHit;
-        private bool searchingForTarget;
-        private bool onTarget;
-        List<int> AllCoordinants;
-        List<int> AvailableCoordinants;
-        List<Ship> PlayerShips;
-        int PlayerShipsSunk;
-        List<int> CardinalDirections;
-        List<int> AvailableDirections;
-        Random rand;
+        private int _lastGuess;                  // last coordinant guessed
+        private int _firstHit;                   // randomly guessed coordinant where a ship was first hit
+        private int _gridWidth;                  // width of the play grid. used to find coordinants on the same row as another coordinant
+        private int _attackDirection;            // direction and number of places in the _allCoordinants index to find an adjacent coordinant
+        private int _playerShipsSunk;            // count of how many player ships have been unalived
+        private bool _lastGuessHit;              // whether or not the last guess was a hit
+        private bool _searchingForTarget;        // whether or not the Opponent is searching for a ship or is activly attacking one. used to determine which method to use to get next guess
+        private bool _onTarget;                  // whetehr or not the Opponent should continue to guess coordinants in the same attack direction
 
-        public Opponent(List<int> AllCoordinants, int gridwidth, List<Ship> playerShips)
+        private List<int> _allCoordinants;       // list of all grid coordiant values
+        private List<int> _availableCoordinants; // list of grid coordinant values that have not been guessed 
+        private List<int> _cardinalDirections;   // list of values 
+        private List<int> _availableDirections;  // shallow copy of cardinal directions. values are removed as they are used
+        private List<Ship> _playerShips;         // reference to the list of ships from the player Board
+
+        private Random _rand;
+
+        public Opponent(List<int> allCoordinants, int gridwidth, List<Ship> playerShips)
         {
-            this.AllCoordinants = AllCoordinants;
-            AvailableCoordinants = new List<int>(AllCoordinants);
-            this.gridWidth = gridwidth;
-            PlayerShips = playerShips;
-
-            rand = new Random();
+            this._allCoordinants = allCoordinants;
+            this._availableCoordinants = new List<int>(allCoordinants);
+            this._gridWidth = gridwidth;
+            this._playerShips = playerShips;
+            this._availableDirections = new List<int>();
+            this._rand = new Random();
             TargetDestroyed(); // Starts out searching for a ship
 
-            CardinalDirections = new List<int> {1, -1, gridWidth, gridWidth * -1};
-            PlayerShipsSunk = CountShipsSunk();
+            this._cardinalDirections = new List<int> {1, -1, _gridWidth, _gridWidth * -1};
+            this._playerShipsSunk = CountShipsSunk();
         }
 
+
+        // Determines which method to use to get a guess for the computer turn.
         public int MakeGuess()
         {
-            if (searchingForTarget)
+            if (_searchingForTarget)
             {
                 //swich case for other dificulty levels here
                 return ShotInTheDark(); // easy mode
@@ -51,156 +56,178 @@ namespace WarBoats
             return EducatedGuess();
         }
 
+
+        // Easy Mode: this function picks a random available coordinant to attack.
         private int ShotInTheDark()
         {
-            int guessIndex = rand.Next(AvailableCoordinants.Count - 1);
-            int guess = AvailableCoordinants[guessIndex];
-            AvailableCoordinants.RemoveAt(guessIndex);
-            lastGuess = guess;
+            int guessIndex = _rand.Next(_availableCoordinants.Count - 1);
+            int guess = _availableCoordinants[guessIndex];
+            _availableCoordinants.RemoveAt(guessIndex);
+            _lastGuess = guess;
             return guess;
         }
          
+
+        // This function is used to determine where to attack after a ship has been hit while searching but before a ship has been marked as sunk.
         private int EducatedGuess()
         {
             while (true)
-            {
-                int initialCoordinant = (lastGuessHit) ? lastGuess : firstHit;
+            {   // Selecting the point of origin for attack based on if the last guess was a hit or not
+                int initialCoordinant = (_lastGuessHit) ? _lastGuess : _firstHit;
                 
-                if (attackDirection == 0)
+                // If a new ship is found, or if the computer ran out of directions to attack in, get a new list of cardinal directions and try one.
+                if (_attackDirection == 0)
                 {
-                    AvailableDirections = new List<int>(CardinalDirections);
-                    attackDirection = PickAttackDirection(firstHit);  // if attack directions somehow runs out of options and PickAttackDirection returns 0, logic will pick a new direction here and in the else if statement below. Must fix.
-
+                    _availableDirections = new List<int>(_cardinalDirections);
+                    //attackDirection = PickAttackDirection(firstHit);  
+                    _attackDirection = PickAttackDirection();
                 }
 
-                if (!lastGuessHit & onTarget)
+
+                // If the computer has gotten multiple hits in one direction and then scores a miss, turns around and attacks again from the first hit location
+                if (!_lastGuessHit & _onTarget)
                 {
-                    attackDirection = attackDirection *= -1;
-                    AvailableDirections.Remove(attackDirection);
+                    _attackDirection = _attackDirection *= -1;
+                    _availableDirections.Remove(_attackDirection);
                 }
                 
-                else if (!lastGuessHit)
+                // Default state. If we get a miss, pick a different direction to try.
+                else if (!_lastGuessHit)
                 {
-                    attackDirection = PickAttackDirection(firstHit);
+                    //attackDirection = PickAttackDirection(firstHit);
+                    _attackDirection = PickAttackDirection();
                 }
 
-                int nextCoordiantIndex = GetNextCoordinantIndex(initialCoordinant, attackDirection);
-                if (!ValidateLegalCoordinant(initialCoordinant, attackDirection, nextCoordiantIndex))
+
+                int nextCoordiantIndex = GetNextCoordinantIndex(initialCoordinant, _attackDirection);
+                if (!ValidateLegalCoordinant(initialCoordinant, _attackDirection, nextCoordiantIndex))
                 {
-                    lastGuessHit = false; //treating the potenital guess as a miss in order to pick a new direction
+                    // treating the potenital guess as a miss in order to pick a new direction
+                    _lastGuessHit = false; 
                     continue;
-                    // do we need to do something else here to avoid getting stuck in a loop?
                 }
 
-                int guess = AllCoordinants[nextCoordiantIndex];
-                AvailableCoordinants.Remove(guess);
-                lastGuess = guess;
+                int guess = _allCoordinants[nextCoordiantIndex];
+                _availableCoordinants.Remove(guess);
+                _lastGuess = guess;
                 return guess;
             }
         } 
 
-        public int ControlledGuess(int coordinant)
-        {
-            AvailableCoordinants.Remove(coordinant);
-            lastGuess = coordinant;
-            return coordinant;
-        }
 
-        private int GetNextCoordinantIndex(int initialCoordinant, int direction)
+        // Uses a given coordinant and a value for the attack direction to get the index of the next guess in AllCoordinants.
+        private int GetNextCoordinantIndex(int seedCoordinant, int direction)
         {
-            int seedCoordinantIndex = AllCoordinants.IndexOf(initialCoordinant);
+            int seedCoordinantIndex = _allCoordinants.IndexOf(seedCoordinant);
             return seedCoordinantIndex + direction;
         }
 
+
+        // Logic to run when the previous guess came back as a hit.
         public void ConfirmHit()
         {
-            if (searchingForTarget)
+            if (_searchingForTarget)
             {
-                searchingForTarget = false;
-                firstHit = lastGuess;
+                _searchingForTarget = false;
+                _firstHit = _lastGuess;
             }
 
             CheckIfOnTarget();
-            lastGuessHit = true;
+            _lastGuessHit = true;
             CheckForSunkShip();
         }
 
+
+        // Logic to run when the previous guess came back as a miss.
         public void HandleMiss()
         {
-            lastGuessHit = false;
+            _lastGuessHit = false;
         }
 
+
+        // Clears the variables associated with attacking a ship after one has been located. Sets Opponent back to searching for a new ship.
         public void TargetDestroyed()
         {
-            lastGuessHit = false;
-            searchingForTarget = true;
-            attackDirection = 0;
-            firstHit = -1;
-            onTarget = false;
+            _lastGuessHit = false;
+            _searchingForTarget = true;
+            _attackDirection = 0;
+            _firstHit = -1;
+            _onTarget = false;
         }
 
-        private int PickAttackDirection(int coordinant)
-        {
-            // should this copy a new line instead? or would that lead to a wild loop
-            // No, because the ValidateLegalCoordinant function will return false and we'll get a new list at the top of the loop.
-            if (AvailableDirections.Count == 0) { return 0; } 
 
-            int directionIndex = rand.Next(AvailableDirections.Count - 1);
-            int direction = AvailableDirections[directionIndex];
-            AvailableDirections.RemoveAt(directionIndex);
+        // Picks randomly from a list of cardinal directions for the next guess to go in.
+        private int PickAttackDirection()
+        //private int PickAttackDirection(int coordinant)
+
+        {
+            // If we somehow find our way here with a blank directions list, sets attackDirection to 0. This won't pass the ValidateLegalCoordinant function and we'll get a new set of directions at the top of the loop.
+            if (_availableDirections.Count == 0) { return 0; } 
+
+            int directionIndex = _rand.Next(_availableDirections.Count - 1);
+            int direction = _availableDirections[directionIndex];
+            _availableDirections.RemoveAt(directionIndex);
             
             return direction;
         }
 
+
+        // Returns true if the potential guess coordinant is on the same row/collumn as the previous guess and hasn't been guessed yet.
         private bool ValidateLegalCoordinant(int lastCoordinant, int direction, int nextIndex)
         {
             // checking to see if the next index is outside of the AllCoordinants list
             if (nextIndex < 0) { return false; }
-            if (nextIndex >= AllCoordinants.Count) { return false; }
+            if (nextIndex >= _allCoordinants.Count) { return false; }
 
-            int nextCoordinant = AllCoordinants[nextIndex];
+            int nextCoordinant = _allCoordinants[nextIndex];
 
             // Checking to see if the next coordinant is in the same column if the attack direction is up or down
             if ((lastCoordinant >> 4 != nextCoordinant >> 4) & (Math.Abs(direction) == 1)) {  return false; }
             // returnig false if the next coordinant has already been guessed
-            return AvailableCoordinants.Contains(nextCoordinant);   
+            return _availableCoordinants.Contains(nextCoordinant);   
         }
 
+
+        // Checks each player ship and counts how many have been sunk.
         private int CountShipsSunk()
         {
             int counter = 0;
-            PlayerShips.ForEach(ship =>
+            _playerShips.ForEach(ship =>
             {
                 if(ship.IsShipSunk()) { counter++; }
             });
             return counter;
         }
 
+
+        // Logic to check to see if the last hit is in the same row/column as the first hit on the target ship.
         private void CheckIfOnTarget()
         {
-            if (attackDirection == 0)
+            if (_attackDirection == 0)
             {
-                onTarget = false;
+                _onTarget = false;
                 return; // can't be on target if we aren't attacking in a particular direction now, can we?
             }
 
-            if (Math.Abs(attackDirection) == 1)
+            if (Math.Abs(_attackDirection) == 1)
             {
-                onTarget = (lastGuess >> 4 == firstHit >> 4); // checking if the last guess is on the same column as the first hit
+                _onTarget = (_lastGuess >> 4 == _firstHit >> 4); // checking if the last guess is on the same column as the first hit
                 return;
             }
 
             int mask = 0b00001111;
-            onTarget = ((lastGuess & mask) == (firstHit & mask)); // checking if the last guess is on the same row as the first hit
+            _onTarget = ((_lastGuess & mask) == (_firstHit & mask)); // checking if the last guess is on the same row as the first hit
         }
 
+
+        // Called each time a hit is made to see if the ship sunk. 
         private void CheckForSunkShip()
         {
             int sunkShips = CountShipsSunk();
-            if (PlayerShipsSunk < sunkShips)
+            if (_playerShipsSunk < sunkShips)
             {
                 TargetDestroyed();
-                PlayerShipsSunk = sunkShips;
+                _playerShipsSunk = sunkShips;
             }
         }
     }
