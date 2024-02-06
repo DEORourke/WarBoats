@@ -193,16 +193,6 @@ namespace WarBoats
         private int DetermineHitShipIndex(int coordinant)
         {
             // Because we always load the ships in the same order, we can use the index of the coordinant in the ShipCoordinants list to get the index of the right ship from the ShipList
-            /* switch (_shipCoordinates.IndexOf(coordinant))
-               {
-                    case <= 4: return 0;
-                    case <= 8: return 1;
-                    case <= 11: return 2;
-                    case <= 14: return 3;
-                    case <= 16: return 4;
-                    default: return -1;
-                }
-            */
             return _shipCoordinates.IndexOf(coordinant) switch
             {
                 <=  4 => 0,
@@ -232,5 +222,11 @@ namespace WarBoats
 
         // Returns a reference to the _shipCoordiants list.
         public List<int> GetShipCoordinates() { return _shipCoordinates; }
+
+
+        public List<int> GetUnhitCoordinants()
+        {
+            return new List<int>(_shipCoordinates.Where(coordinant => !_guessList.Contains(coordinant)));
+        }
     }
 }

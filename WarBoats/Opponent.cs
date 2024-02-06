@@ -10,35 +10,42 @@ namespace WarBoats
     // The Opponent class handles logic for guessing player ship locations and hunting them down when a ship is hit.
     internal class Opponent
     {
-        private int _lastGuess;                  // last coordinant guessed
-        private int _firstHit;                   // randomly guessed coordinant where a ship was first hit
-        private int _gridWidth;                  // width of the play grid. used to find coordinants on the same row as another coordinant
-        private int _attackDirection;            // direction and number of places in the _allCoordinants index to find an adjacent coordinant
-        private int _playerShipsSunk;            // count of how many player ships have been unalived
-        private bool _lastGuessHit;              // whether or not the last guess was a hit
-        private bool _searchingForTarget;        // whether or not the Opponent is searching for a ship or is activly attacking one. used to determine which method to use to get next guess
-        private bool _onTarget;                  // whetehr or not the Opponent should continue to guess coordinants in the same attack direction
+        private int _lastGuess;                 // last coordinant guessed
+        private int _firstHit;                  // randomly guessed coordinant where a ship was first hit
+        private int _gridWidth;                 // width of the play grid. used to find coordinants on the same row as another coordinant
+        private int _attackDirection;           // direction and number of places in the _allCoordinants index to find an adjacent coordinant
+        private int _playerShipsSunk;           // count of how many player ships have been unalived
+        private bool _lastGuessHit;             // whether or not the last guess was a hit
+        private bool _searchingForTarget;       // whether or not the Opponent is searching for a ship or is activly attacking one. used to determine which method to use to get next guess
+        private bool _onTarget;                 // whetehr or not the Opponent should continue to guess coordinants in the same attack direction
+        private int _dificultyLevel;            // determines which functions are used to gess where to attack when searching for a player ship
+        private int _smallestShip;              // length of the smallest player shipt that has not yet been sunk
+        private int _emptySpacesRequired;               // number of spaces adjacent to a given coordinant that need to be empty to be guessed in medium dificulty
 
-        private List<int> _allCoordinants;       // list of all grid coordiant values
-        private List<int> _availableCoordinants; // list of grid coordinant values that have not been guessed 
-        private List<int> _cardinalDirections;   // list of values 
-        private List<int> _availableDirections;  // shallow copy of cardinal directions. values are removed as they are used
-        private List<Ship> _playerShips;         // reference to the list of ships from the player Board
+        private List<int> _allCoordinants;          // list of all grid coordiant values
+        private List<int> _gridCoordinants;
+        private List<int> _availableCoordinants;    // list of grid coordinant values that have not been guessed 
+        private List<int> _cardinalDirections;      // list of values 
+        private List<int> _availableDirections;     // shallow copy of cardinal directions. values are removed as they are used
+        private List<Ship> _playerShips;            // reference to the list of ships from the player Board
 
         private Random _rand;
 
-        public Opponent(List<int> allCoordinants, int gridwidth, List<Ship> playerShips)
+        public Opponent(List<int> allCoordinants, int gridwidth, List<Ship> playerShips,int dificultyLevel)
         {
             this._allCoordinants = allCoordinants;
             this._availableCoordinants = new List<int>(allCoordinants);
             this._gridWidth = gridwidth;
             this._playerShips = playerShips;
             this._availableDirections = new List<int>();
+            this._gridCoordinants = new List<int>();
             this._rand = new Random();
+            this._dificultyLevel = dificultyLevel;
             TargetDestroyed(); // Starts out searching for a ship
-
+            
             this._cardinalDirections = new List<int> {1, -1, _gridWidth, _gridWidth * -1};
             this._playerShipsSunk = CountShipsSunk();
+            this._emptySpacesRequired = 4;
         }
 
 
@@ -47,12 +54,14 @@ namespace WarBoats
         {
             if (_searchingForTarget)
             {
-                //swich case for other dificulty levels here
-                return ShotInTheDark(); // easy mode
-                // normal mode : search in a grid where the size is based on the smallest ship remaining
-                // hard mode : Determines next coordinant based on probability matrix. May or may not happen based on if my brain cooperates.
+                return _dificultyLevel switch
+                {
+                    1 => ShotInTheDark(),  // easy mode
+                    2 => GridGuess(),  // medium
+                    // 3 => ProbabilityGuess(),  // hard mode : Determines next coordinant based on probability matrix. May or may not happen based on if my brain cooperates.
+                    _ => ShotInTheDark()
+                };
             }
-
             return EducatedGuess();
         }
 
@@ -67,6 +76,33 @@ namespace WarBoats
             return guess;
         }
          
+
+        // Medium difficulty: makes guesses from a grid of coordinants where the spacing is based on the shortest player ship that has not been sunk. Preferrs guesses with the neighbors that have not been guessed.
+        private int GridGuess()
+        {
+            List<int> tempAvailableCoordinants = new List<int>(_gridCoordinants);
+            while (true)
+            {
+                if (tempAvailableCoordinants.Count == 0)
+                {
+                    tempAvailableCoordinants = new List<int>(_gridCoordinants);
+                    this._emptySpacesRequired--;
+                }
+
+                int guessIndex = _rand.Next(tempAvailableCoordinants.Count - 1);
+                int guess = tempAvailableCoordinants[guessIndex];
+                tempAvailableCoordinants.Remove(guess);
+
+                if (ConfirmEmptyNeighbors(guess, _emptySpacesRequired))
+                {
+                    _availableCoordinants.Remove(guess);
+                    _gridCoordinants.Remove(guess);
+                    _lastGuess = guess;
+                    return guess;
+                }
+            }
+        }
+
 
         // This function is used to determine where to attack after a ship has been hit while searching but before a ship has been marked as sunk.
         private int EducatedGuess()
@@ -153,6 +189,11 @@ namespace WarBoats
             _attackDirection = 0;
             _firstHit = -1;
             _onTarget = false;
+
+            if (_dificultyLevel == 2)
+            {   // Gets a new list of grid coordiants to search for a potentially new smallest ship for medium difficulty.
+                _gridCoordinants = GetSearchGrid();
+            }
         }
 
 
@@ -229,6 +270,63 @@ namespace WarBoats
                 TargetDestroyed();
                 _playerShipsSunk = sunkShips;
             }
+        }
+
+
+        // Finds the length of the smallest player ship not yet sunk.
+        private void UpdateSmallestShipLength()
+        {
+            int smallestShip = _gridWidth;
+            List<Ship> activeShips = _playerShips.Where(ship => ship.IsShipSunk() == false).ToList();
+            activeShips.ForEach(ship =>
+            {
+                int length = ship.GetShipLength();
+                smallestShip = (length < smallestShip) ? length : smallestShip;
+            });
+            this._smallestShip = smallestShip;
+        }
+
+
+        // Creates a grid-like list of coordiants to search for player ships based on the length of the smallest ship left alive.
+        private List<int> GetSearchGrid()
+        {
+            UpdateSmallestShipLength();
+            List<int> grid = new List<int>();
+            int mask = 0b00001111;
+            _allCoordinants.ForEach(coordinant =>
+            {
+                int left = (coordinant >> 4);
+                int top = (coordinant & mask);
+                int remainder = left % _smallestShip;
+
+                if(top % _smallestShip == 0 & _availableCoordinants.Contains(coordinant + remainder)) { grid.Add(coordinant + remainder); }
+            });
+            return grid;
+        }
+
+
+        // returns true if the required number of neighboring places of a coordinant have not been guessed
+        private bool ConfirmEmptyNeighbors(int coordinant, int requirement)
+        {
+            int coordinantIndex = _allCoordinants.IndexOf(coordinant);
+            int emptyNeighbors = 0;
+
+            foreach (var direction in _cardinalDirections)
+            {
+                int adjacentCoordinantIndex = coordinantIndex + direction;
+                if (adjacentCoordinantIndex >= _allCoordinants.Count | adjacentCoordinantIndex < 0)
+                {
+                    requirement--;  // requirement is decremented to make sure corners/edges are weighed the same as inner coordinants.
+                    continue;
+                }
+                if ((coordinant >> 4 != _allCoordinants[adjacentCoordinantIndex] >> 4) & (Math.Abs(direction) == 1))
+                {
+                    requirement--;
+                    continue;
+                }
+                if (_availableCoordinants.Contains(_allCoordinants[adjacentCoordinantIndex])) { emptyNeighbors++; }
+            }
+            return (emptyNeighbors >= requirement) ? true : false;
         }
     }
 }

@@ -167,7 +167,7 @@ namespace WarBoats
 
 
         // Prints strings of text to the message display area.
-        public void WritePrompt(string line1, string line2)
+        public void WritePrompt(string line1, string line2="")
         {
             Console.SetCursorPosition(_leftOffset - 1, _textBoxRow);
             Console.Write(line1);

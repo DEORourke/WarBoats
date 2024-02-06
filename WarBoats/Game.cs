@@ -10,8 +10,6 @@ namespace WarBoats
     {
         private int _gridWidth = 10;            // width of each game board
         private int _gridHeight = 10;           // height of each game board. I think at one point I was going to make this adjustable, but battleship has always been 10x10. Might go back and do that if I feel spicy later.
-        private int _topOffset = 3;             // two header rows and one index row
-        private int _leftOffset = 3;            // border column, buffer, and index column
         private int _enemyGridOffset = 240;     // adding this number to a coordinant value causes the Artist to draw a hit/miss in the enemy grid. (grid width + 5 << 4)
         private int _defaultMessageTime = 1500; // number of ms to wait by default when displaying a message
 
@@ -23,16 +21,13 @@ namespace WarBoats
         private Board computerBoard;
         private Opponent opponent;
 
-        public Game()
+        public Game(Artist artist, int gridWidth, int gridHeight, int difficulty)
         {
             this._allCoordinants = new List<int>();
             this.BuildAllCoordinantsList();
-            this.artist = new Artist(
-                  this._gridWidth
-                , this._gridHeight
-                , this._topOffset
-                , this._leftOffset
-            );
+            this.artist = artist;
+            this._gridWidth = gridWidth;
+            this._gridHeight = gridHeight;
             this.playerBoard = new Board(
                   this._allCoordinants
                 , this._gridWidth
@@ -45,30 +40,19 @@ namespace WarBoats
                   this._allCoordinants
                 , this._gridWidth
                 , this.playerBoard.GetShipList()
+                , difficulty
             );
         }
 
 
-        // Methods to call for the Artist to draw the title screen to the console window.
-        public void TitleScreen()
-        {
-            Console.Clear();
-            this.artist.DrawBorder();
-            this.artist.DrawSweetGraphics();
-            this.artist.WritePrompt("     PRESS THE ANY KEY", "       FOR NEW GAME");
-            Console.ReadKey(true);
-        }
-
-
         // Method called by the program to start a new game. Prompts to set up ships, then goes into the main game loop.
-        public void RunGame()
+        public void StartNewGame()
         {
-            Console.Clear();
             this.DoArtistSetup();
 
             // Next two line are to speed up debugging (PlayerPopulateShipCoordinants will need to be commented out). Places player ships in a preset location and draws them to the board.
-            // this.playerBoard.PopulateTestPlayerShips();
-            // artist.DrawBoats(playerBoard.GetShipCoordinates());
+            //this.playerBoard.PopulateTestPlayerShips();
+            //artist.DrawBoats(playerBoard.GetShipCoordinates());
 
             this.playerBoard.PlayerPopulateShipCoordinants(this);  // A reference to the Game is needed for the Board to be able to prompt for ship coordinants.
             this.computerBoard.ComputerPopulateShipCoordinants();
@@ -76,8 +60,10 @@ namespace WarBoats
             bool playerWins = this.GameLoop();
             string winnerName = playerWins ? "PLAYER" : "COMPUTER";
 
+            if (!playerWins) { ShowEnemyShips(); }
+
             DisplayText($"GAME OVER. {winnerName} WINS!");
-            Console.SetCursorPosition(0, 20);
+            Console.ReadKey(true);
         }
 
 
@@ -232,7 +218,7 @@ namespace WarBoats
                 opponent.HandleMiss();
             }
 
-            System.Threading.Thread.Sleep(500);
+            System.Threading.Thread.Sleep(500); // initial value 500
         }
 
 
@@ -376,6 +362,16 @@ namespace WarBoats
         public void DrawPlayerShip(List<int> coordinants)
         {
             this.artist.DrawBoats(coordinants);
+        }
+
+
+        // Gets a list of enemy ship coordinants that were not guessed, adds the enemy grid offset to each, then 
+        private void ShowEnemyShips()
+        {
+            List<int> unmodifiedCoordinants = computerBoard.GetUnhitCoordinants();
+            List<int> modifiedCoordiants = new List<int>();
+            unmodifiedCoordinants.ForEach(coordinant => modifiedCoordiants.Add(coordinant + _enemyGridOffset));
+            artist.DrawBoats(modifiedCoordiants);
         }
     }
 }
